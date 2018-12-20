@@ -21,7 +21,15 @@ type CloudManifestBuild struct {
 	GitVersion   string `json:"gitVersion"`
 	Platform     string `json:"platform"`
 	URL          string `json:"url"`
-	Win2008Plus  bool   `json:"win2008plus,omitempty"`
+	Flavor       string `json:"flavor,omitempty"`
+	MaxOsVersion string `json:"maxOsVersion,omitempty"`
+	MinOsVersion string `json:"minOsVersion,omitempty"`
+
+	Win2008Plus        bool     `json:"win2008plus,omitempty"`
+	WinVCRedistDll     string   `json:"winVCRedistDll,omitempty"`
+	WinVCRedistOptions []string `json:"winVCRedistOptions,omitempty"`
+	WinVCRedistURL     string   `json:"winVCRedistURL,omitempty"`
+	WinVCRedistVersion string   `json:"winVCRedistVersion,omitempty"`
 }
 
 func fetchCloudVersionManifest(token string) (*CloudManifest, error) {

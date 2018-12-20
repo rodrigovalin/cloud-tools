@@ -11,16 +11,16 @@ type ServerManifest struct {
 }
 
 type ServerManifestVersion struct {
-	Changes            string                 `json:"changes"`
-	Current            bool                   `json:"current"`
-	Date               string                 `json:"date"`
-	DevelopmentRelease bool                   `json:"development_release"`
-	Downloads          ServerManifestDownload `json:"downloads"`
-	Githash            string                 `json:"githash"`
-	ProductionRelease  bool                   `json:"production_release"`
-	ReleaseCandidate   bool                   `json:"release_candidate"`
-	Version            string                 `json:"version"`
-	Notes              string                 `json:"notes,omitempty"`
+	Changes            string                   `json:"changes"`
+	Current            bool                     `json:"current"`
+	Date               string                   `json:"date"`
+	DevelopmentRelease bool                     `json:"development_release"`
+	Downloads          []ServerManifestDownload `json:"downloads"`
+	Githash            string                   `json:"githash"`
+	ProductionRelease  bool                     `json:"production_release"`
+	ReleaseCandidate   bool                     `json:"release_candidate"`
+	Version            string                   `json:"version"`
+	Notes              string                   `json:"notes,omitempty"`
 }
 
 type ServerManifestDownload struct {
