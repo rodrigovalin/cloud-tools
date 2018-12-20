@@ -24,8 +24,12 @@ type CloudManifestBuild struct {
 	Win2008Plus  bool   `json:"win2008plus,omitempty"`
 }
 
-func fetchCloudVersionManifest() (*CloudManifest, error) {
-	res, err := http.Get(cloudVersionManifest40)
+func fetchCloudVersionManifest(token string) (*CloudManifest, error) {
+	url := serverVersionManifest
+	if token != "" {
+		url = serverVersionManifest + "?token=" + token
+	}
+	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +40,10 @@ func fetchCloudVersionManifest() (*CloudManifest, error) {
 	}
 
 	s := &CloudManifest{}
-	json.Unmarshal(body, &s)
+	err = json.Unmarshal(body, &s)
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }

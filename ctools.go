@@ -30,19 +30,28 @@ Then
 
 import (
 	"fmt"
+	"os"
 )
 
-const serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
-const cloudVersionManifest = "https://raw.githubusercontent.com/10gen/mms/master/server/conf/mongodb_version_manifest.json?token=AAHlg1Cl2VYanZz7AaHQCRGKP2GEBCHTks5cI7RbwA%3D%3D"
-const cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/3.6.json?token=AAHlg-Er1Hgv1Cm5_aoI3GMwBiPoeSYOks5cI8F-wA%3D%3D"
-const cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/4.0.json?token=AAHlg2upKuFsW6_iIZYu8txzbDSfxOgTks5cI8HmwA%3D%3D"
+const (
+	serverVersionManifest  = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
+	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/master/server/conf/mongodb_version_manifest.json"
+	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/3.6.json"
+	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/4.0.json"
+)
 
 func main() {
 	fmt.Println("Hola")
 
 	fmt.Println("Fetching server manifest")
 
-	serverManifest, err := fetchServerVersionManifest()
+	token := getGitHubToken()
+	if token == "" {
+		fmt.Println("Please configure GITHUB_TOKEN")
+		os.Exit(1)
+	}
+
+	serverManifest, err := fetchServerVersionManifest(token)
 	if err != nil {
 		fmt.Println("Error Fetching the server manifest")
 	} else {
@@ -51,11 +60,10 @@ func main() {
 			serverVersions = append(serverVersions, version.Version)
 		}
 		fmt.Printf("There are %d versions in the server manifest\n", len(serverVersions))
-		// fmt.Printf("%+v\n", serverManifest.Versions[0])
 	}
 
 	fmt.Println("Fetching cloud manifest")
-	cloudManifest, err := fetchCloudVersionManifest()
+	cloudManifest, err := fetchCloudVersionManifest(token)
 	if err != nil {
 		fmt.Println("Error Fetching the cloud manifest")
 	} else {
@@ -64,6 +72,15 @@ func main() {
 			cloudVersions = append(cloudVersions, version.Name)
 		}
 		fmt.Printf("There are %d versions in the server manifest\n", len(cloudVersions))
-		// fmt.Printf("%+v\n", cloudManifest.Versions[0])
 	}
+}
+
+func getGitHubToken() string {
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		return token
+	}
+
+	// TODO: look for the token on a file in home dir (maybe ~.mci/)
+	return ""
 }

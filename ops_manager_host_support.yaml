@@ -1,0 +1,50 @@
+# This yaml file describes the supported Host Operating Systems that Ops Manager can work with.
+# This is, the OS, versions and flavors that Ops Manager can install mongod via the automation agent.
+#
+
+---
+release: 4.2
+supportManagedHosts:
+  platform: Linux
+  - flavor: Ubuntu
+    minVersion: 16.04
+    maxVersion: 18.04
+    arch: amd64
+
+---
+release: 4.0
+supportedManagedHosts:
+  platform: Linux
+  - flavor: Ubuntu
+    minVersion: 16.04
+    maxVersion: 18.04
+    arch: amd64
+
+  - flavor: Debian
+    minVersion: 7
+    maxVersion: 9
+
+  - flavor: rhel
+    minVersion: 62
+    maxVersion: 71
+    arch:
+    - amd64
+    - ppc64le
+
+  platform: Windows
+  - minVersion: 3.11
+    maxVersion: 95
+
+  platform: macos
+  - minVersion: 10.10
+
+---
+release: 3.6
+supportedManagedHosts:
+  platform: Linux
+  - flavor: Ubuntu
+    minVersion: 14.04
+    maxVersion: 16.04
+    arch:
+    - amd64
+    - arm64
