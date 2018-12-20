@@ -39,12 +39,8 @@ type ServerManifestArchive struct {
 	URL          string `json:"url"`
 }
 
-func fetchServerVersionManifest(token string) (*ServerManifest, error) {
-	url := serverVersionManifest
-	if token != "" {
-		url = serverVersionManifest + "?token=" + token
-	}
-	res, err := http.Get(url)
+func fetchServerVersionManifest() (*ServerManifest, error) {
+	res, err := http.Get(serverVersionManifest)
 	if err != nil {
 		return nil, err
 	}

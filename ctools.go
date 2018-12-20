@@ -64,13 +64,7 @@ func main() {
 
 	versionArg := os.Args[2]
 
-	token := getGitHubToken()
-	if token == "" {
-		fmt.Println("Please configure GITHUB_TOKEN")
-		os.Exit(1)
-	}
-
-	serverManifest, err := fetchServerVersionManifest(token)
+	serverManifest, err := fetchServerVersionManifest()
 	if err != nil {
 		fmt.Println("Error Fetching the server manifest")
 		os.Exit(1)
@@ -111,7 +105,7 @@ func newCloudManifestVersion(version, gitsha string, serverVersion ServerManifes
 
 func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) []CloudManifestBuild {
 	cloudManifestBuilds := make([]CloudManifestBuild, len(serverVersion.Downloads))
-	for _, download := range serverVersion.Downloads {
+	for idx, download := range serverVersion.Downloads {
 		build := CloudManifestBuild{
 			Architecture: download.Arch,
 			GitVersion:   serverVersion.Githash,
@@ -137,7 +131,7 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) []C
 			// nothing actually
 		}
 
-		cloudManifestBuilds = append(cloudManifestBuilds, build)
+		cloudManifestBuilds[idx] = build
 	}
 
 	return cloudManifestBuilds
