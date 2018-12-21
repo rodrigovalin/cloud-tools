@@ -38,24 +38,11 @@ import (
 
 const (
 	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
-
-	WinVCRedistDll34 = "vcruntime140.dll"
-	WinVCRedistUrl34 = "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
-
-	// TODO add this
-	WinVCRedistDll = "msvcr120.dll"
-	WinVCRedistUrl = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
-
-	WinVCRedistVersion   = "10.0.40219.325"
-	WinVCRedistVersion3  = "12.0.21005.1"
-	WinVCRedistVersion34 = "14.0.24212.0"
 )
-
-var FlavorLinux = [...]string{"suse", "rhel", "ubuntu", "debian", "amazon", "linux"}
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ctools add-version <version>")
+		fmt.Printf("Usage:\n\t%s add-version <version>\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -112,8 +99,7 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]
 	cloudManifestBuildsEnt := make([]CloudManifestBuild, 0)
 
 	for _, download := range serverVersion.Downloads {
-		if download.Edition == "source" ||
-			download.Arch == "arm64" {
+		if shouldSkipDownload(&download) {
 			continue
 		}
 
@@ -124,30 +110,8 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]
 			URL:          getPartialFromFullURL(download.Archive.URL),
 		}
 
-		if targetIsLinux(download.Target) {
-			build.Flavor = getFlavorFromTarget(download.Target)
-			minOsVersion, maxOsVersion := getMinMaxOsVersionFromURL(build.Flavor, build.URL)
-			build.MinOsVersion = minOsVersion
-			build.MaxOsVersion = maxOsVersion
-		}
-
-		if targetIsWindows(download.Target) {
-			// TODO: lots of rules for windows specially different versions of the redistdll
-			dll, url := getWinRCRedistDll(serverVersion.Version)
-			if strings.Contains(download.Target, "2008plus") {
-				build.Win2008Plus = true
-				build.WinVCRedistDll = dll
-				build.WinVCRedistOptions = []string{"/quiet", "/norestart"}
-				build.WinVCRedistURL = url
-				build.WinVCRedistVersion = WinVCRedistVersion
-			}
-			if download.Msi != "" {
-				// build.M
-			}
-		}
-		if targetIsMacOS(download.Target) {
-			// nothing actually
-		}
+		applyLinuxAttributes(serverVersion.Version, &download, &build)
+		applyWindowsAttributes(serverVersion.Version, &download, &build)
 
 		if download.Edition == "enterprise" {
 			build.GitVersion = serverVersion.Githash + " modules: enterprise"
@@ -186,45 +150,9 @@ func getPlatformFromTarget(target string) string {
 	return ""
 }
 
-func targetIsLinux(target string) bool {
-	for _, el := range FlavorLinux {
-		if strings.Contains(target, el) {
-			return true
-		}
-	}
-	return false
-}
-
-func targetIsMacOS(target string) bool {
-	return strings.Contains(target, "macos") || strings.Contains(target, "osx")
-}
-
-func targetIsWindows(target string) bool {
-	return strings.Contains(target, "windows")
-}
-
 func getPartialFromFullURL(full string) string {
 	splited := strings.Split(full, "/")
 	return "/" + strings.Join(splited[len(splited)-2:], "/")
-}
-
-func getFlavorFromTarget(target string) string {
-	for _, flavor := range FlavorLinux {
-		if strings.Contains(target, flavor) {
-			return flavor
-		}
-	}
-	return ""
-}
-
-func getWinRCRedistDll(version string) (string, string) {
-	if strings.HasPrefix(version, "3.4") ||
-		strings.HasPrefix(version, "3.6") ||
-		strings.HasPrefix(version, "4.") {
-		return WinVCRedistDll34, WinVCRedistUrl34
-	}
-
-	return WinVCRedistDll, WinVCRedistUrl
 }
 
 func getCloudArchFromServerArch(arch string) string {
@@ -233,4 +161,8 @@ func getCloudArchFromServerArch(arch string) string {
 	}
 
 	return arch
+}
+
+func shouldSkipDownload(download *ServerManifestDownload) bool {
+	return download.Edition == "source" || download.Arch == "arm64"
 }
