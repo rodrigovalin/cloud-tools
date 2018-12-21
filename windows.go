@@ -4,13 +4,14 @@ import "strings"
 
 /**
 Dealing with Windows Attributes
+
+Requirements for VCRedist* are hardcoded here. Good for now. I'm not sure if it needs more attention considering how
+few changes we do to this.
 */
 
 const (
-	WinVCRedistDll34 = "vcruntime140.dll"
 	WinVCRedistUrl34 = "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
 
-	WinVCRedistDll = "msvcr120.dll"
 	WinVCRedistUrl = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
 
 	WinVCRedistVersion   = "10.0.40219.325"
@@ -32,39 +33,58 @@ func applyWindowsAttributes(serverVersion string, download *ServerManifestDownlo
 }
 
 func getWinVCRedistDll(version string) string {
-	dll, _ := getWinRCRedistDll(version)
-	return dll
+	if strings.HasPrefix(version, "2.") {
+		return "msvcr100.dll"
+	}
+
+	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
+		return "msvcr120.dll"
+	}
+
+	return "vcruntime140.dll"
 }
 
 func getWinVCRedistURL(version string) string {
-	_, url := getWinRCRedistDll(version)
-	return url
-}
+	if strings.HasPrefix(version, "2.") {
+		return "http://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe"
+	}
 
-func getWinVCRedistOptions(version string) []string {
-	return []string{"/quiet", "/norestart"}
+	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
+		return "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
+	}
+
+	// next version is used from 3.4 onwards
+	return "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
 }
 
 func getWinVCRedistVersion(version string) string {
-	return WinVCRedistVersion
+	if strings.HasPrefix(version, "2.") {
+		return "10.0.40219.325"
+	}
+
+	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
+		return "12.0.21005.1"
+	}
+
+	// next version is used from 3.4 onwards
+	return "14.0.24212.0"
+}
+
+func getWinVCRedistOptions(version string) []string {
+	if strings.HasPrefix(version, "2.") {
+		return []string{"/q", "/norestart"}
+	}
+
+	return []string{"/quiet", "/norestart"}
 }
 
 func getWin2008Plus() bool {
 	return true
 }
 
+// Not sure what this is
 func getMsi() string {
 	return "COMPLETE_ME"
-}
-
-func getWinRCRedistDll(version string) (string, string) {
-	if strings.HasPrefix(version, "3.4") ||
-		strings.HasPrefix(version, "3.6") ||
-		strings.HasPrefix(version, "4.") {
-		return WinVCRedistDll34, WinVCRedistUrl34
-	}
-
-	return WinVCRedistDll, WinVCRedistUrl
 }
 
 func targetIsWindows(target string) bool {

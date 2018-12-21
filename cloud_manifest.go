@@ -34,9 +34,9 @@ type CloudManifestBuild struct {
 }
 
 const (
-	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/master/server/conf/mongodb_version_manifest.json"
-	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/3.6.json"
-	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/4.0.json"
+	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/conf/mongodb_version_manifest.json"
+	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/src/webapp-mms/static/version_manifest/3.6.json"
+	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/src/webapp-mms/static/version_manifest/4.0.json"
 )
 
 func fetchCloudVersionManifest(token string) (*CloudManifest, error) {
