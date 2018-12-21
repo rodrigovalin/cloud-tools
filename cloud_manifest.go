@@ -29,7 +29,7 @@ type CloudManifestBuild struct {
 	Win2008Plus        bool     `json:"win2008plus,omitempty"`
 	WinVCRedistDll     string   `json:"winVCRedistDll,omitempty"`
 	WinVCRedistOptions []string `json:"winVCRedistOptions,omitempty"`
-	WinVCRedistURL     string   `json:"winVCRedistURL,omitempty"`
+	WinVCRedistURL     string   `json:"winVCRedistUrl,omitempty"`
 	WinVCRedistVersion string   `json:"winVCRedistVersion,omitempty"`
 }
 
@@ -37,6 +37,10 @@ const (
 	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/conf/mongodb_version_manifest.json"
 	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/src/webapp-mms/static/version_manifest/3.6.json"
 	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/dbc4bd8b8fb0002ddaac2f45a7a6e239af5c8f60/server/src/webapp-mms/static/version_manifest/4.0.json"
+
+	// The 3.6.9 version was added in this commit dbd14a6db330428b472396860ab80a697a0afdd5, so the next URL
+	// points to the version of the 4.0.json file which has been updated with this version
+	cloudVersionManifest40Post369 = "https://raw.githubusercontent.com/10gen/mms/dbd14a6db330428b472396860ab80a697a0afdd5/server/src/webapp-mms/static/version_manifest/4.0.json"
 )
 
 func fetchCloudVersionManifest(token string) (*CloudManifest, error) {
