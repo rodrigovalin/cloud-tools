@@ -33,10 +33,16 @@ type CloudManifestBuild struct {
 	WinVCRedistVersion string   `json:"winVCRedistVersion,omitempty"`
 }
 
+const (
+	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/master/server/conf/mongodb_version_manifest.json"
+	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/3.6.json"
+	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/4.0.json"
+)
+
 func fetchCloudVersionManifest(token string) (*CloudManifest, error) {
-	url := serverVersionManifest
+	url := cloudVersionManifest40
 	if token != "" {
-		url = serverVersionManifest + "?token=" + token
+		url = cloudVersionManifest40 + "?token=" + token
 	}
 	res, err := http.Get(url)
 	if err != nil {

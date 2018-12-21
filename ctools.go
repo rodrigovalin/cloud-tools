@@ -37,10 +37,7 @@ import (
 )
 
 const (
-	serverVersionManifest  = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
-	cloudVersionManifest   = "https://raw.githubusercontent.com/10gen/mms/master/server/conf/mongodb_version_manifest.json"
-	cloudVersionManifest36 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/3.6.json"
-	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/master/server/src/webapp-mms/static/version_manifest/4.0.json"
+	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
 
 	WinVCRedistDll34 = "vcruntime140.dll"
 	WinVCRedistUrl34 = "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
@@ -70,11 +67,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	cloudManifest, err := buildCloudManifestForVersion(versionArg, serverManifest)
+	cloudManifest, err := fetchCloudVersionManifest(os.Getenv("GITHUB_TOKEN"))
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	updatedCloudManifest, err := buildCloudManifestForVersion(versionArg, serverManifest)
 	if err != nil {
 		fmt.Print(err)
 		os.Exit(1)
 	}
+
+	cloudManifest.Updated = updatedCloudManifest.Updated
+	cloudManifest.Versions = append(cloudManifest.Versions, updatedCloudManifest.Versions...)
 	manifest, err := json.Marshal(cloudManifest)
 	if err != nil {
 		fmt.Println(err)
