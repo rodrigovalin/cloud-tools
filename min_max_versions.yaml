@@ -1,0 +1,58 @@
+# MinMax Versions define the supported OS version for a given
+# MongoDB package
+
+---
+flavors:
+  - name: rhel
+    osVersions:
+    - name: rhel70
+      min: "7.0"
+      max: "8.0"
+    - name: default
+      min: "6.2"
+      max: "7.0"
+
+  - name: suse
+    osVersions:
+    - name: suse12
+      min: "12"
+      max: "13"
+    - name: default
+      min: "11"
+      max: "12"
+
+  - name: ubuntu
+    osVersions:
+    - name: ubuntu1804
+      min: "18.04"
+      max: "19.04"
+    - name: ubuntu1604
+      min: "16.04"
+      max: "17.04"
+    - name: ubuntu1404
+      min: "14.04"
+      max: "15.04"
+    - name: default
+      min: "12.04"
+      max: "13.04"
+
+  - name: debian
+    osVersions:
+    - name: debian92
+      min: "9.1"
+      max: "10.0"
+    - name: debian81
+      min: "8.1"
+      max: "9.0"
+    - name: default
+      min: "7.1"
+      max: "8.0"
+
+  - name: amazon
+    osVersions:
+    - name: amazon2
+      min: "2"
+      max: ""
+    - name: default
+      min: "2013.03"
+      max: ""

@@ -126,7 +126,7 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]
 
 		if targetIsLinux(download.Target) {
 			build.Flavor = getFlavorFromTarget(download.Target)
-			minOsVersion, maxOsVersion := getMinMaxOsVersionFromUrl(build.Flavor, build.URL)
+			minOsVersion, maxOsVersion := getMinMaxOsVersionFromURL(build.Flavor, build.URL)
 			build.MinOsVersion = minOsVersion
 			build.MaxOsVersion = maxOsVersion
 		}
@@ -233,53 +233,4 @@ func getCloudArchFromServerArch(arch string) string {
 	}
 
 	return arch
-}
-
-func getMinMaxOsVersionFromUrl(flavor, url string) (string, string) {
-	if flavor == "rhel" {
-		if strings.Contains(url, "rhel70") {
-			return "7.0", "8.0"
-		}
-		return "6.2", "7.0"
-	}
-
-	if flavor == "suse" {
-		if strings.Contains(url, "suse12") {
-			return "12", "13"
-		}
-		return "11", "12"
-	}
-
-	if flavor == "ubuntu" {
-		if strings.Contains(url, "ubuntu1804") {
-			return "18.04", "19.04"
-		}
-		if strings.Contains(url, "ubuntu1604") {
-			return "16.04", "17.04"
-		}
-		if strings.Contains(url, "ubuntu1404") {
-			return "14.04", "15.04"
-		}
-
-		return "12.04", "13.04"
-	}
-
-	if flavor == "debian" {
-		if strings.Contains(url, "debian92") {
-			return "9.1", "10.0"
-		}
-		if strings.Contains(url, "debian81") {
-			return "8.1", "9.0"
-		}
-		return "7.1", "8.0"
-	}
-
-	if flavor == "amazon" {
-		if strings.Contains(url, "amazon2") {
-			return "2", ""
-		}
-		return "2013.03", ""
-	}
-
-	return "", ""
 }
