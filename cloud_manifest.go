@@ -17,13 +17,14 @@ type CloudManifestVersion struct {
 }
 
 type CloudManifestBuild struct {
-	Architecture string `json:"architecture"`
-	GitVersion   string `json:"gitVersion"`
-	Platform     string `json:"platform"`
-	URL          string `json:"url"`
-	Flavor       string `json:"flavor,omitempty"`
-	MaxOsVersion string `json:"maxOsVersion,omitempty"`
-	MinOsVersion string `json:"minOsVersion,omitempty"`
+	Architecture string   `json:"architecture"`
+	GitVersion   string   `json:"gitVersion"`
+	Platform     string   `json:"platform"`
+	URL          string   `json:"url"`
+	Flavor       string   `json:"flavor,omitempty"`
+	MaxOsVersion string   `json:"maxOsVersion,omitempty"`
+	MinOsVersion string   `json:"minOsVersion,omitempty"`
+	Modules      []string `json:"modules,omitempty"`
 
 	Win2008Plus        bool     `json:"win2008plus,omitempty"`
 	WinVCRedistDll     string   `json:"winVCRedistDll,omitempty"`

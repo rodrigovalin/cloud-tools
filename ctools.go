@@ -54,7 +54,7 @@ const (
 	WinVCRedistVersion34 = "14.0.24212.0"
 )
 
-var FlavorLinux = [...]string{"suse", "rhel", "ubuntu", "debian", "amazon"}
+var FlavorLinux = [...]string{"suse", "rhel", "ubuntu", "debian", "amazon", "linux"}
 
 func main() {
 	if len(os.Args) < 3 {
@@ -84,13 +84,16 @@ func main() {
 }
 
 func buildCloudManifestForVersion(newVersion string, server *ServerManifest) (*CloudManifest, error) {
-	cloudManifest := &CloudManifest{Updated: time.Now().Unix()}
+	cloudManifest := &CloudManifest{Updated: time.Now().Unix() * 1000}
 	for _, version := range server.Versions {
 		if version.Version == newVersion {
-			builds := buildBuildsForCloudManifestVersion(version)
+			community, enterprise := buildBuildsForCloudManifestVersion(version)
 			cloudManifest.Versions = []CloudManifestVersion{{
-				Builds: builds,
+				Builds: community,
 				Name:   newVersion,
+			}, {
+				Builds: enterprise,
+				Name:   newVersion + "-ent",
 			}}
 		}
 	}
@@ -98,16 +101,18 @@ func buildCloudManifestForVersion(newVersion string, server *ServerManifest) (*C
 	return cloudManifest, nil
 }
 
-func newCloudManifestVersion(version, gitsha string, serverVersion ServerManifestVersion) (*CloudManifestVersion, error) {
-	builds := buildBuildsForCloudManifestVersion(serverVersion)
-	return &CloudManifestVersion{Name: version, Builds: builds}, nil
-}
+func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]CloudManifestBuild, []CloudManifestBuild) {
+	cloudManifestBuilds := make([]CloudManifestBuild, 0)
+	cloudManifestBuildsEnt := make([]CloudManifestBuild, 0)
 
-func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) []CloudManifestBuild {
-	cloudManifestBuilds := make([]CloudManifestBuild, len(serverVersion.Downloads))
-	for idx, download := range serverVersion.Downloads {
+	for _, download := range serverVersion.Downloads {
+		if download.Edition == "source" ||
+			download.Arch == "arm64" {
+			continue
+		}
+
 		build := CloudManifestBuild{
-			Architecture: download.Arch,
+			Architecture: getCloudArchFromServerArch(download.Arch),
 			GitVersion:   serverVersion.Githash,
 			Platform:     getPlatformFromTarget(download.Target),
 			URL:          getPartialFromFullURL(download.Archive.URL),
@@ -115,6 +120,9 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) []C
 
 		if targetIsLinux(download.Target) {
 			build.Flavor = getFlavorFromTarget(download.Target)
+			minOsVersion, maxOsVersion := getMinMaxOsVersionFromUrl(build.Flavor, build.URL)
+			build.MinOsVersion = minOsVersion
+			build.MaxOsVersion = maxOsVersion
 		}
 
 		if targetIsWindows(download.Target) {
@@ -125,16 +133,26 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) []C
 				build.WinVCRedistDll = dll
 				build.WinVCRedistOptions = []string{"/quiet", "/norestart"}
 				build.WinVCRedistURL = url
+				build.WinVCRedistVersion = WinVCRedistVersion
+			}
+			if download.Msi != "" {
+				// build.M
 			}
 		}
 		if targetIsMacOS(download.Target) {
 			// nothing actually
 		}
 
-		cloudManifestBuilds[idx] = build
+		if download.Edition == "enterprise" {
+			build.GitVersion = serverVersion.Githash + " modules: enterprise"
+			build.Modules = []string{"enterprise"}
+			cloudManifestBuildsEnt = append(cloudManifestBuildsEnt, build)
+		} else {
+			cloudManifestBuilds = append(cloudManifestBuilds, build)
+		}
 	}
 
-	return cloudManifestBuilds
+	return cloudManifestBuilds, cloudManifestBuildsEnt
 }
 
 func getGitHubToken() string {
@@ -181,7 +199,7 @@ func targetIsWindows(target string) bool {
 
 func getPartialFromFullURL(full string) string {
 	splited := strings.Split(full, "/")
-	return strings.Join(splited[len(splited)-2:], "/")
+	return "/" + strings.Join(splited[len(splited)-2:], "/")
 }
 
 func getFlavorFromTarget(target string) string {
@@ -201,4 +219,61 @@ func getWinRCRedistDll(version string) (string, string) {
 	}
 
 	return WinVCRedistDll, WinVCRedistUrl
+}
+
+func getCloudArchFromServerArch(arch string) string {
+	if arch == "x86_64" {
+		return "amd64"
+	}
+
+	return arch
+}
+
+func getMinMaxOsVersionFromUrl(flavor, url string) (string, string) {
+	if flavor == "rhel" {
+		if strings.Contains(url, "rhel70") {
+			return "7.0", "8.0"
+		}
+		return "6.2", "7.0"
+	}
+
+	if flavor == "suse" {
+		if strings.Contains(url, "suse12") {
+			return "12", "13"
+		}
+		return "11", "12"
+	}
+
+	if flavor == "ubuntu" {
+		if strings.Contains(url, "ubuntu1804") {
+			return "18.04", "19.04"
+		}
+		if strings.Contains(url, "ubuntu1604") {
+			return "16.04", "17.04"
+		}
+		if strings.Contains(url, "ubuntu1404") {
+			return "14.04", "15.04"
+		}
+
+		return "12.04", "13.04"
+	}
+
+	if flavor == "debian" {
+		if strings.Contains(url, "debian92") {
+			return "9.1", "10.0"
+		}
+		if strings.Contains(url, "debian81") {
+			return "8.1", "9.0"
+		}
+		return "7.1", "8.0"
+	}
+
+	if flavor == "amazon" {
+		if strings.Contains(url, "amazon2") {
+			return "2", ""
+		}
+		return "2013.03", ""
+	}
+
+	return "", ""
 }
