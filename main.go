@@ -31,6 +31,7 @@ Then
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -95,11 +96,24 @@ func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 		return 1
 	}
 
-	// TODO: if fileInto != "" write that file instead
-	// TODO: if fileInto is a S3 url (valid and known), try to push it there instead
+	if fileInto != "" {
+		if isS3File(fileInto) {
+			err = writeS3File(fileInto, manifest)
+			if err != nil {
+				return 1
+			}
+			// Write into a S3 bucket
+			return 0
+		}
+		err = ioutil.WriteFile(fileInto, manifest, 0644)
+		if err != nil {
+			fmt.Println(err)
+			return 1
+		}
+
+		return 0
+	}
 	fmt.Println(string(manifest))
-	//fmt.Printf("Versions in original manifests: %d\n", len(cloudManifest.Versions))
-	//fmt.Printf("New versions manifests: %d\n", len(updatedCloudManifest.Versions))
 	return 0
 }
 
