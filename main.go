@@ -34,19 +34,28 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/docopt/docopt-go"
 )
 
 const (
 	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
 )
 
-func main() {
-	if len(os.Args) < 3 {
-		fmt.Printf("Usage:\n\t%s add-version <version>\n", os.Args[0])
-		os.Exit(1)
-	}
+var usage string = `Cloud Tools
 
-	versionArg := os.Args[2]
+Usage:
+  cloud-tools version-manifest update --new <mongod-version> --into <file>
+  cloud-tools -h | --help
+  cloud-tools --version
+
+`
+
+func main() {
+	args, _ := docopt.ParseDoc(usage)
+
+	versionArg, _ := args.String("<mongod-version")
+	fileArg, _ := args.String("<file>")
 
 	serverManifest, err := fetchServerVersionManifest()
 	if err != nil {
@@ -54,7 +63,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cloudManifest, err := fetchCloudVersionManifest(os.Getenv("GITHUB_TOKEN"))
+	cloudManifest, err := fetchCloudVersionManifest(fileArg)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

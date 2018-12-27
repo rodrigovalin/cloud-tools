@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 )
 
 type CloudManifest struct {
@@ -39,24 +38,16 @@ const (
 
 	// Pre 3.6.9 added ok?
 	pre369Release          = "8edf6d59e1bfc7a0ab193208d6fae61debd06221"
-	cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/" + pre369Release + "/server/src/webapp-mms/static/version_manifest/4.0.json"
+	cloudVersionManifest40 = "https://s3.amazonaws.com/om-kubernetes-conf/4.0.json"
+	// cloudVersionManifest40 = "https://raw.githubusercontent.com/10gen/mms/" + pre369Release + "/server/src/webapp-mms/static/version_manifest/4.0.json"
 
 	// The 3.6.9 version was added in this commit dbd14a6db330428b472396860ab80a697a0afdd5, so the next URL
 	// points to the version of the 4.0.json file which has been updated with this version
 	cloudVersionManifest40Post369 = "https://raw.githubusercontent.com/10gen/mms/dbd14a6db330428b472396860ab80a697a0afdd5/server/src/webapp-mms/static/version_manifest/4.0.json"
 )
 
-func fetchCloudVersionManifest(token string) (*CloudManifest, error) {
-	url := cloudVersionManifest40
-	if token != "" {
-		url = cloudVersionManifest40 + "?token=" + token
-	}
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
+func fetchCloudVersionManifest(versionManifest string) (*CloudManifest, error) {
+	body, err := ioutil.ReadFile(versionManifest)
 	if err != nil {
 		return nil, err
 	}

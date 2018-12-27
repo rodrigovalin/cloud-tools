@@ -1,13 +1,12 @@
 package main
 
 import (
-	"io/ioutil"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
-// OsMinMaxVersionDefinition
+// OsMinMaxVersionDefinition bla bla
 type OsMinMaxVersionDefinition struct {
 	Flavors []OsMinMaxVersionFlavor `yaml:"flavors"`
 }
@@ -26,7 +25,8 @@ type OsMinMaxVersionOsVersions struct {
 }
 
 func readOsMinMaxVersions() *OsMinMaxVersionDefinition {
-	yamlFile, err := ioutil.ReadFile("min_max_versions.yaml")
+	yamlFile, err := Asset("assets/min_max_versions.yaml")
+	// yamlFile, err := ioutil.ReadFile("min_max_versions.yaml")
 	if err != nil {
 		panic(err)
 	}
