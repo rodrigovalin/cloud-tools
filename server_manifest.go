@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+const (
+	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
+)
+
 type ServerManifest struct {
 	Versions []ServerManifestVersion `json:"versions"`
 }
@@ -55,5 +59,6 @@ func fetchServerVersionManifest() (*ServerManifest, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return s, nil
 }

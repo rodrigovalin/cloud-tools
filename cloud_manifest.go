@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"strings"
 )
 
 type CloudManifest struct {
@@ -21,8 +23,8 @@ type CloudManifestBuild struct {
 	Platform     string   `json:"platform"`
 	URL          string   `json:"url"`
 	Flavor       string   `json:"flavor,omitempty"`
-	MaxOsVersion string   `json:"maxOsVersion,omitempty"`
-	MinOsVersion string   `json:"minOsVersion,omitempty"`
+	MaxOsVersion *string  `json:"maxOsVersion,omitempty"`
+	MinOsVersion *string  `json:"minOsVersion,omitempty"`
 	Modules      []string `json:"modules,omitempty"`
 
 	Win2008Plus        bool     `json:"win2008plus,omitempty"`
@@ -46,8 +48,34 @@ const (
 	cloudVersionManifest40Post369 = "https://raw.githubusercontent.com/10gen/mms/dbd14a6db330428b472396860ab80a697a0afdd5/server/src/webapp-mms/static/version_manifest/4.0.json"
 )
 
-func fetchCloudVersionManifest(versionManifest string) (*CloudManifest, error) {
-	body, err := ioutil.ReadFile(versionManifest)
+func fetchCloudVersionManifest(versionManifestFile string) (*CloudManifest, error) {
+	if strings.HasPrefix(versionManifestFile, "https://") {
+		return fetchCloudVersionManifestFromURL(versionManifestFile)
+	}
+	return fetchCloudVersionManifestFromFile(versionManifestFile)
+}
+
+func fetchCloudVersionManifestFromURL(versionManifestFile string) (*CloudManifest, error) {
+	res, err := http.Get(versionManifestFile)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	s := &CloudManifest{}
+	err = json.Unmarshal(body, &s)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+func fetchCloudVersionManifestFromFile(versionManifestFile string) (*CloudManifest, error) {
+	body, err := ioutil.ReadFile(versionManifestFile)
 	if err != nil {
 		return nil, err
 	}

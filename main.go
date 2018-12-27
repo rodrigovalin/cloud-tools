@@ -38,51 +38,69 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
-const (
-	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
-)
-
-var usage string = `Cloud Tools
+var usage = `Cloud Tools -- Tools to avoid rutine.
 
 Usage:
-  cloud-tools version-manifest update --new <mongod-version> --into <file>
+  cloud-tools version-manifest add-build --new <mongod-version> --merge-with <file-merge> [--into <file-into>]
+  cloud-tools version-manifest push --om-release <om-release>
+  cloud-tools version-manifest list-versions --om-release <om-release>
+  cloud-tools version-manifest rollback --om-release <om-release> --version-tag <version-tag>
   cloud-tools -h | --help
   cloud-tools --version
-
+  cloud-tools quicktip
 `
 
 func main() {
 	args, _ := docopt.ParseDoc(usage)
 
-	versionArg, _ := args.String("<mongod-version")
-	fileArg, _ := args.String("<file>")
+	tip, err := args.Bool("quicktip")
+	if err == nil && tip {
+		fmt.Println(say())
+		os.Exit(0)
+	}
 
+	addBuild, err := args.Bool("add-build")
+	if err == nil && addBuild {
+		mongoDVersion, _ := args.String("<mongod-version>")
+		fileMerge, _ := args.String("<file-merge>")
+		fileInto, _ := args.String("<file-into>")
+		os.Exit(addBuildOperation(mongoDVersion, fileMerge, fileInto))
+	}
+}
+
+func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 	serverManifest, err := fetchServerVersionManifest()
 	if err != nil {
 		fmt.Println("Error Fetching the server manifest")
-		os.Exit(1)
+		return 1
 	}
 
-	cloudManifest, err := fetchCloudVersionManifest(fileArg)
+	cloudManifest, err := fetchCloudVersionManifest(fileMerge)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
-	updatedCloudManifest, err := buildCloudManifestForVersion(versionArg, serverManifest)
+	updatedCloudManifest, err := buildCloudManifestForVersion(mongoDVersion, serverManifest)
 	if err != nil {
 		fmt.Print(err)
-		os.Exit(1)
+		return 1
 	}
 
 	cloudManifest.Updated = updatedCloudManifest.Updated
 	cloudManifest.Versions = append(cloudManifest.Versions, updatedCloudManifest.Versions...)
-	manifest, err := json.Marshal(cloudManifest)
+	manifest, err := json.MarshalIndent(cloudManifest, "", "  ")
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
+
+	// TODO: if fileInto != "" write that file instead
+	// TODO: if fileInto is a S3 url (valid and known), try to push it there instead
 	fmt.Println(string(manifest))
+	//fmt.Printf("Versions in original manifests: %d\n", len(cloudManifest.Versions))
+	//fmt.Printf("New versions manifests: %d\n", len(updatedCloudManifest.Versions))
+	return 0
 }
 
 func buildCloudManifestForVersion(newVersion string, server *ServerManifest) (*CloudManifest, error) {
@@ -97,6 +115,7 @@ func buildCloudManifestForVersion(newVersion string, server *ServerManifest) (*C
 				Builds: enterprise,
 				Name:   newVersion + "-ent",
 			}}
+			break
 		}
 	}
 

@@ -8,8 +8,8 @@ var FlavorLinux = [...]string{"suse", "rhel", "ubuntu", "debian", "amazon", "lin
 func applyLinuxAttributes(serverVersion string, download *ServerManifestDownload, build *CloudManifestBuild) {
 	build.Flavor = getLinuxFlavorFromTarget(download.Target)
 	minOsVersion, maxOsVersion := getMinMaxOsVersionFromURL(build.Flavor, build.URL)
-	build.MinOsVersion = minOsVersion
-	build.MaxOsVersion = maxOsVersion
+	build.MinOsVersion = &minOsVersion
+	build.MaxOsVersion = &maxOsVersion
 
 }
 
