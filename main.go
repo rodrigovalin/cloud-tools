@@ -49,6 +49,7 @@ Usage:
   cloud-tools -h | --help
   cloud-tools --version
   cloud-tools quicktip
+  cloud-tools sayhi
 `
 
 func main() {
@@ -67,12 +68,17 @@ func main() {
 		fileInto, _ := args.String("<file-into>")
 		os.Exit(addBuildOperation(mongoDVersion, fileMerge, fileInto))
 	}
+
+	sayHi, err := args.Bool("sayhi")
+	if err == nil && sayHi {
+		fmt.Println("Hi!")
+	}
 }
 
 func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 	serverManifest, err := fetchServerVersionManifest()
 	if err != nil {
-		fmt.Println("Error Fetching the server manifest")
+		fmt.Println(err)
 		return 1
 	}
 
@@ -102,7 +108,6 @@ func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 			if err != nil {
 				return 1
 			}
-			// Write into a S3 bucket
 			return 0
 		}
 		err = ioutil.WriteFile(fileInto, manifest, 0644)
@@ -165,16 +170,6 @@ func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]
 	}
 
 	return cloudManifestBuilds, cloudManifestBuildsEnt
-}
-
-func getGitHubToken() string {
-	token := os.Getenv("GITHUB_TOKEN")
-	if token != "" {
-		return token
-	}
-
-	// TODO: look for the token on a file in home dir (maybe ~.mci/)
-	return ""
 }
 
 func getPlatformFromTarget(target string) string {
