@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 const (
-	serverVersionManifest = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
+	serverVersionManifest      = "http://downloads.mongodb.org.s3.amazonaws.com/full.json"
+	serverVersionManifestLocal = "full.json"
 )
 
 type ServerManifest struct {
@@ -43,15 +45,37 @@ type ServerManifestArchive struct {
 	URL          string `json:"url"`
 }
 
-func fetchServerVersionManifest() (*ServerManifest, error) {
-	res, err := http.Get(serverVersionManifest)
-	if err != nil {
-		return nil, err
+func (s *ServerManifest) HasBuild(version string) bool {
+	for _, v := range s.Versions {
+		if v.Version == version {
+			return true
+		}
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	return false
+}
+
+func fetchServerVersionManifest() (*ServerManifest, error) {
+	var body []byte
+	var err error
+	_, ok := os.LookupEnv("IM_WORKING")
+	// set IM_WORKING to something to read the full.json from disk instead of S3
+	// makes testing faster!
+	if ok {
+		body, err = ioutil.ReadFile(serverVersionManifestLocal)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		res, err := http.Get(serverVersionManifest)
+		if err != nil {
+			return nil, err
+		}
+
+		body, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	s := &ServerManifest{}

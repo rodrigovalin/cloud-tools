@@ -1,0 +1,122 @@
+#
+# This yaml file describes the supported Host Operating Systems that Ops Manager can work with.
+# This is, the OS, versions and flavors that Ops Manager can install mongod via the automation agent.
+#
+
+---
+opsManagerVersion:
+- version: 4.0
+  supportedPlatforms:
+  - platform: Linux
+    flavors:
+    - name: ubuntu
+      supportedVersions: ["1204", "1404", "1604", "1804"]
+      arch: ["x86_64", "ppc64le"]
+
+    - name: debian
+      supportedVersions: ["71", "81", "92"]
+      arch: ["x86_64"]
+
+    - name: suse
+      supportedVersions: ["11", "12"]
+      arch: ["x86_64"]
+
+    - name: amazon
+      supportedVersions: ["2", "2013.03"]
+      arch: ["x86_64"]
+
+    - name: amazon2
+      supportedVersions: ["2", "2013.03"]
+      arch: ["x86_64"]
+
+    - name: amzn64
+      supportedVersions: ["2", "2013.03"]
+      arch: ["x86_64"]
+
+    - name: rhel
+      supportedVersions: ["55", "57", "62", "67", "70", "71"]
+      arch: ["ppc64le", "s390x", "x86_64"]
+
+  - platform: Windows
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]
+
+  - platform: osx
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]
+
+- version: 3.6
+  supportedPlatforms:
+  - platform: Linux
+    flavors:
+    - name: ubuntu
+      supportedVersions: ["1204", "1404", "1604"]
+      arch: ["x86_64", "ppc64le"]
+
+    - name: debian
+      supportedVersions: ["71", "81", "92"]
+      arch: ["x86_64"]
+
+    - name: suse
+      supportedVersions: ["11", "12"]
+      arch: ["x86_64"]
+
+    - name: amazon
+      supportedVersions: ["2013.03"]
+      arch: ["x86_64"]
+
+    - name: rhel
+      supportedVersions: ["55", "57", "62", "70", "71"]
+      arch: ["ppc64le", "x86_64"]
+
+  - platform: Windows
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]
+
+  - platform: osx
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]
+
+- version: 3.4
+  supportedPlatforms:
+  - platform: Linux
+    flavors:
+    - name: ubuntu
+      supportedVersions: ["1204", "1404", "1604"]
+      arch: ["x86_64"]
+
+    - name: debian
+      supportedVersions: ["71", "81", "92"]
+      arch: ["x86_64"]
+
+    - name: suse
+      supportedVersions: ["11", "12"]
+      arch: ["x86_64"]
+
+    - name: amazon
+      supportedVersions: ["2013.03"]
+      arch: ["x86_64"]
+
+    - name: rhel
+      supportedVersions: ["55", "57", "62", "67", "70", "71"]
+      arch: ["x86_64"]
+
+  - platform: Windows
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]
+
+  - platform: osx
+    flavors:
+    - name: generic
+      supportedVersions: ["*"]
+      arch:  ["x86_64"]

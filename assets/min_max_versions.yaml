@@ -5,19 +5,31 @@
 flavors:
   - name: rhel
     osVersions:
+    - name: rhel71
+      min: "7.0"
+      max: "8.0"
     - name: rhel70
       min: "7.0"
       max: "8.0"
-    - name: default
+    - name: rhel67
       min: "6.2"
       max: "7.0"
+    - name: rhel62
+      min: "6.2"
+      max: "7.0"
+    - name: rhel57
+      min: "5.7"
+      max: "6.0"
+    - name: rhel55
+      min: "5.5"
+      max: "6.0"
 
   - name: suse
     osVersions:
     - name: suse12
       min: "12"
       max: "13"
-    - name: default
+    - name: suse11
       min: "11"
       max: "12"
 
@@ -32,7 +44,7 @@ flavors:
     - name: ubuntu1404
       min: "14.04"
       max: "15.04"
-    - name: default
+    - name: ubuntu1204
       min: "12.04"
       max: "13.04"
 
@@ -44,7 +56,7 @@ flavors:
     - name: debian81
       min: "8.1"
       max: "9.0"
-    - name: default
+    - name: debian71
       min: "7.1"
       max: "8.0"
 
@@ -52,7 +64,10 @@ flavors:
     osVersions:
     - name: amazon2
       min: "2"
-      max: ""
-    - name: default
+      max: "<empty>"
+    - name: amazon
       min: "2013.03"
-      max: ""
+      max: "<empty>"
+    - name: amzn64
+      min: "2013.03"
+      max: "<empty>"

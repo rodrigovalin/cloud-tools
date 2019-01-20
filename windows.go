@@ -1,90 +1,93 @@
 package main
 
-import "strings"
+import (
+	"strings"
 
-/**
-Dealing with Windows Attributes
-
-Requirements for VCRedist* are hardcoded here. Good for now. I'm not sure if it needs more attention considering how
-few changes we do to this.
-*/
-
-const (
-	WinVCRedistUrl34 = "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
-
-	WinVCRedistUrl = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
-
-	WinVCRedistVersion   = "10.0.40219.325"
-	WinVCRedistVersion3  = "12.0.21005.1"
-	WinVCRedistVersion34 = "14.0.24212.0"
+	yaml "gopkg.in/yaml.v2"
 )
+
+type WinVCDefinition struct {
+	Versions []WinVCVersion `yaml:"versions"`
+}
+
+type WinVCVersion struct {
+	Prefix  []string `yaml:"prefix"`
+	URL     string   `yaml:"url"`
+	DLL     string   `yaml:"dll"`
+	Version string   `yaml:"version"`
+	Options []string `yaml:"options"`
+}
+
+var WinVC = &WinVCDefinition{}
+
+func init() {
+	f, err := Asset("assets/winvc_versions.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	err = yaml.Unmarshal(f, &WinVC)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func applyWindowsAttributes(serverVersion string, download *ServerManifestDownload, build *CloudManifestBuild) {
 	if !targetIsWindows(download.Target) {
 		return
 	}
 
-	build.Win2008Plus = getWin2008Plus()
-	build.WinVCRedistDll = getWinVCRedistDll(serverVersion)
-	build.WinVCRedistOptions = getWinVCRedistOptions(serverVersion)
-	build.WinVCRedistURL = getWinVCRedistURL(serverVersion)
-	build.WinVCRedistVersion = getWinVCRedistVersion(serverVersion)
+	build.Win2008Plus = getWin2008Plus(download)
+	if !build.Win2008Plus {
+		// following attributes are only set on 2008plus versions.
+		return
+	}
+	url, dll, version, options := getWinVCAttributes(serverVersion)
+	build.WinVCRedistDll = dll
+	build.WinVCRedistOptions = options
+	build.WinVCRedistURL = url
+	build.WinVCRedistVersion = version
 
 }
 
-func getWinVCRedistDll(version string) string {
-	if strings.HasPrefix(version, "2.") {
-		return "msvcr100.dll"
+func isVersionCatchAll(prefix []string) bool {
+	if len(prefix) == 0 {
+		return true
 	}
 
-	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
-		return "msvcr120.dll"
+	if len(prefix) == 1 && prefix[0] == "*" {
+		return true
 	}
 
-	return "vcruntime140.dll"
+	return false
 }
 
-func getWinVCRedistURL(version string) string {
-	if strings.HasPrefix(version, "2.") {
-		return "http://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe"
+func getWinVCAttributes(version string) (string, string, string, []string) {
+	for _, v := range WinVC.Versions {
+		// first check that a given version is matched with one of the prefixes
+		// skipping the catch-all version
+		if isVersionCatchAll(v.Prefix) {
+			continue
+		}
+		for _, prefix := range v.Prefix {
+			if strings.HasPrefix(version, prefix) {
+				return v.URL, v.DLL, v.Version, v.Options
+			}
+		}
 	}
 
-	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
-		return "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
+	// if a version didn't match, return the catch-all, if there's any
+	for _, v := range WinVC.Versions {
+		if isVersionCatchAll(v.Prefix) {
+			return v.URL, v.DLL, v.Version, v.Options
+		}
 	}
 
-	// next version is used from 3.4 onwards
-	return "http://download.microsoft.com/download/6/D/F/6DF3FF94-F7F9-4F0B-838C-A328D1A7D0EE/vc_redist.x64.exe"
+	return "", "", "", []string{}
 }
 
-func getWinVCRedistVersion(version string) string {
-	if strings.HasPrefix(version, "2.") {
-		return "10.0.40219.325"
-	}
-
-	if strings.HasPrefix(version, "3.0") || strings.HasPrefix(version, "3.2") {
-		return "12.0.21005.1"
-	}
-
-	// next version is used from 3.4 onwards
-	return "14.0.24212.0"
-}
-
-func getWinVCRedistOptions(version string) []string {
-	if strings.HasPrefix(version, "2.") {
-		return []string{"/q", "/norestart"}
-	}
-
-	return []string{"/quiet", "/norestart"}
-}
-
-func getWin2008Plus() bool {
-	return true
-}
-
-// Not sure what this is
-func getMsi() string {
-	return "COMPLETE_ME"
+func getWin2008Plus(download *ServerManifestDownload) bool {
+	return strings.Contains(download.Archive.URL, "2008plus") || strings.Contains(download.Archive.URL, "windows-64")
 }
 
 func targetIsWindows(target string) bool {

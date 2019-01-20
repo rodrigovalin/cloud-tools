@@ -1,31 +1,14 @@
 package main
 
 /*
-This is the easiest program ever written in Go. It has the follow functionality:
+ Cloud Tools. A collection of tools for sunny days.
 
-1. Read from the server builds json
-2. Read from the cloud builds json
-3. Compare the two
-4. Spit out the set differences (each element a build)
+ This tools was conceived to help on routine tasks that the cloud team needs to perform.
+ We are trying to accomplish the following goals.
 
-Then
+ - find an easy way to distribute tools across the organization
+ - make it easy to do routine tasks with them.
 
-1. Authenticate to Jira
-2. Read the release ticket (https://jira.mongodb.org/browse/CLOUDP-35176)
-3. Generate a new cloud json file combining:
-  - the old server team json man -> http://downloads.mongodb.org.s3.amazonaws.com/full.json
-  - the old cloud json man -> https://github.com/10gen/mms/blob/master/server/conf/mongodb_version_manifest.json
-  - the information in the ticket about the new build to be added
-  -
-4. Write this new file into disk
-
-Then
-
-1. Make sure the new file is correct? Simple validations
-  - The file should be json valid
-  - All of the builds should be HEAD-able
-2. Make sure the new builds are downloadable and that the SHA checks
-3.
 */
 
 import (
@@ -33,46 +16,154 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
+	"strconv"
 	"time"
 
-	"github.com/docopt/docopt-go"
+	"github.com/blang/semver"
+	docopt "github.com/docopt/docopt-go"
 )
 
-var usage = `Cloud Tools -- Tools to avoid rutine.
+var usage = `Cloud Tools -- Tools for Sunny Days.
 
 Usage:
-  cloud-tools version-manifest add-build --new <mongod-version> --merge-with <file-merge> [--into <file-into>]
-  cloud-tools version-manifest push --om-release <om-release>
-  cloud-tools version-manifest list-versions --om-release <om-release>
-  cloud-tools version-manifest rollback --om-release <om-release> --version-tag <version-tag>
+  cloud-tools version-manifest add-build --new=<mongod-version> --merge-with=<file-merge> [--into=<file-into>] [--om-version=<om-version>]
+  cloud-tools version-manifest add-build --new=<mongod-version> --as-pr
+  cloud-tools version-manifest list-versions --manifest=<manifest-file>
+  cloud-tools version-manifest compare --src=<src-manifest> --dst=<dst-manifest> --compare=<mongod-version>
   cloud-tools -h | --help
   cloud-tools --version
-  cloud-tools quicktip
 `
 
-func main() {
-	args, _ := docopt.ParseDoc(usage)
+const (
+	ManifestDir = "server/src/webapp-mms/static/version_manifest"
+	ConfDir     = "server/conf"
+)
 
-	tip, err := args.Bool("quicktip")
-	if err == nil && tip {
-		fmt.Println(say())
-		os.Exit(0)
+func main() {
+	// cwd := getCWD()
+	root, err := findRoot()
+	if err != nil {
+		fmt.Println("Could not find mms repo base directory.")
+		fmt.Println("Please run `cloud-tools` from inside the git repo.")
+		os.Exit(1)
 	}
+	args, _ := docopt.ParseDoc(usage)
 
 	addBuild, err := args.Bool("add-build")
 	if err == nil && addBuild {
-		mongoDVersion, _ := args.String("<mongod-version>")
-		fileMerge, _ := args.String("<file-merge>")
-		fileInto, _ := args.String("<file-into>")
-		os.Exit(addBuildOperation(mongoDVersion, fileMerge, fileInto))
+		asPr, err := args.Bool("--as-pr")
+		if err == nil && asPr {
+			// change all the required files at once, and make them ready for PR
+			mongoDVersion, _ := args.String("--new")
+			os.Exit(addBuildOperationAsPr(mongoDVersion, root))
+		}
+		mongoDVersion, _ := args.String("--new")
+		fileMerge, _ := args.String("--merge-with")
+		fileInto, _ := args.String("--into")
+		omVersion, _ := args.String("--om-version")
+		os.Exit(addBuildOperation(mongoDVersion, fileMerge, fileInto, omVersion))
+	}
+
+	compareVersion, err := args.Bool("compare")
+	if err == nil && compareVersion {
+		m0, _ := args.String("--src")
+		m1, _ := args.String("--dst")
+		version, _ := args.String("--compare")
+
+		os.Exit(compareManifestsForVersion(m0, m1, version))
+	}
+
+	listVersions, err := args.Bool("list-versions")
+	if err == nil && listVersions {
+		manifest, _ := args.String("<manifest-file>")
+		os.Exit(listVersionsOperation(manifest))
 	}
 }
 
-func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
+func listVersionsOperation(manifest string) int {
+	fmt.Printf("Getting versions for manifest: %s\n", manifest)
+	versions, err := listVersionsForFile(manifest)
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+
+	for _, version := range versions {
+		fmt.Println(version)
+	}
+
+	return 0
+}
+
+func isGreaterThan(a, b string) bool {
+	av, _ := semver.Make(a)
+	bv, _ := semver.Make(b)
+
+	return av.GT(bv)
+}
+
+func addBuildOperationAsPr(mongoVersion, repo string) int {
 	serverManifest, err := fetchServerVersionManifest()
 	if err != nil {
-		fmt.Println("Error Fetching the server manifest")
+		fmt.Println(err)
+		return 1
+
+	}
+	if !serverManifest.HasBuild(mongoVersion) {
+		fmt.Printf("MongoDB Version %s does not exists in Server Manifest\n", mongoVersion)
+		os.Exit(1)
+	}
+
+	var VersionManifestReleases = [...]string{"3.4", "3.6", "4.0"}
+
+	mongo, _ := semver.Make(mongoVersion)
+	fmt.Printf("Adding New MongoDB Version %s\n", mongo)
+	timestamp := strconv.FormatInt(time.Now().UTC().Truncate(24*time.Hour).Unix(), 10)
+	for idx, omVersion := range VersionManifestReleases {
+		current, _ := semver.Make(fmt.Sprintf("%s.0", omVersion))
+		fname := fmt.Sprintf("%s/%s/%s.json", repo, ManifestDir, omVersion)
+		thisUpdated := fmt.Sprintf("%s0%d%d", timestamp, current.Major, current.Minor)
+
+		err = editUpdatedField(fname, thisUpdated)
+		if err != nil {
+			fmt.Println(err)
+			return 1
+		}
+
+		if !OpsManagerSupportsMongoDB(current, mongo) {
+			continue
+		}
+
+		fmt.Printf("Adding version to %s\n", fname)
+		err = addVersionToFile(fname, mongoVersion, omVersion, serverManifest)
+		if err != nil {
+			fmt.Println(err)
+			return 1
+		}
+
+		if idx == len(VersionManifestReleases)-1 {
+			// also modify `mongodb_version_manifest.json`
+			err = editUpdatedField(fname, thisUpdated)
+			if err != nil {
+				fmt.Println(err)
+				return 1
+			}
+			fname = fmt.Sprintf("%s/%s/mongodb_version_manifest.json", repo, ConfDir)
+			err = addVersionToFile(fname, mongoVersion, omVersion, serverManifest)
+			if err != nil {
+				fmt.Println(err)
+				return 1
+			}
+		}
+	}
+
+	return 0
+}
+
+func addBuildOperation(mongoDVersion, fileMerge, fileInto, omVersion string) int {
+	serverManifest, err := fetchServerVersionManifest()
+	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
 
@@ -82,14 +173,31 @@ func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 		return 1
 	}
 
-	updatedCloudManifest, err := buildCloudManifestForVersion(mongoDVersion, serverManifest)
+	updatedCloudManifest, err := buildCloudManifestForVersion(mongoDVersion, serverManifest, omVersion)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return 1
 	}
 
 	cloudManifest.Updated = updatedCloudManifest.Updated
-	cloudManifest.Versions = append(cloudManifest.Versions, updatedCloudManifest.Versions...)
+
+	added := false
+	for idx, v := range cloudManifest.Versions {
+		if isGreaterThan(v.Name, mongoDVersion) {
+			cloudManifest.Versions = append(cloudManifest.Versions, CloudManifestVersion{})
+			cloudManifest.Versions = append(cloudManifest.Versions, CloudManifestVersion{})
+			copy(cloudManifest.Versions[idx+2:], cloudManifest.Versions[idx:])
+			cloudManifest.Versions[idx] = updatedCloudManifest.Versions[0]
+			cloudManifest.Versions[idx+1] = updatedCloudManifest.Versions[1]
+			added = true
+			break
+		}
+	}
+	if !added {
+		// If unable to find a place in the array, put it at the end
+		cloudManifest.Versions = append(cloudManifest.Versions, updatedCloudManifest.Versions...)
+	}
+
 	manifest, err := json.MarshalIndent(cloudManifest, "", "  ")
 	if err != nil {
 		fmt.Println(err)
@@ -102,7 +210,6 @@ func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 			if err != nil {
 				return 1
 			}
-			// Write into a S3 bucket
 			return 0
 		}
 		err = ioutil.WriteFile(fileInto, manifest, 0644)
@@ -115,96 +222,4 @@ func addBuildOperation(mongoDVersion, fileMerge, fileInto string) int {
 	}
 	fmt.Println(string(manifest))
 	return 0
-}
-
-func buildCloudManifestForVersion(newVersion string, server *ServerManifest) (*CloudManifest, error) {
-	cloudManifest := &CloudManifest{Updated: time.Now().Unix() * 1000}
-	for _, version := range server.Versions {
-		if version.Version == newVersion {
-			community, enterprise := buildBuildsForCloudManifestVersion(version)
-			cloudManifest.Versions = []CloudManifestVersion{{
-				Builds: community,
-				Name:   newVersion,
-			}, {
-				Builds: enterprise,
-				Name:   newVersion + "-ent",
-			}}
-			break
-		}
-	}
-
-	return cloudManifest, nil
-}
-
-func buildBuildsForCloudManifestVersion(serverVersion ServerManifestVersion) ([]CloudManifestBuild, []CloudManifestBuild) {
-	cloudManifestBuilds := make([]CloudManifestBuild, 0)
-	cloudManifestBuildsEnt := make([]CloudManifestBuild, 0)
-
-	for _, download := range serverVersion.Downloads {
-		if shouldSkipDownload(&download) {
-			continue
-		}
-
-		build := CloudManifestBuild{
-			Architecture: getCloudArchFromServerArch(download.Arch),
-			GitVersion:   serverVersion.Githash,
-			Platform:     getPlatformFromTarget(download.Target),
-			URL:          getPartialFromFullURL(download.Archive.URL),
-		}
-
-		applyLinuxAttributes(serverVersion.Version, &download, &build)
-		applyWindowsAttributes(serverVersion.Version, &download, &build)
-
-		if download.Edition == "enterprise" {
-			build.GitVersion = serverVersion.Githash + " modules: enterprise"
-			build.Modules = []string{"enterprise"}
-			cloudManifestBuildsEnt = append(cloudManifestBuildsEnt, build)
-		} else {
-			cloudManifestBuilds = append(cloudManifestBuilds, build)
-		}
-	}
-
-	return cloudManifestBuilds, cloudManifestBuildsEnt
-}
-
-func getGitHubToken() string {
-	token := os.Getenv("GITHUB_TOKEN")
-	if token != "" {
-		return token
-	}
-
-	// TODO: look for the token on a file in home dir (maybe ~.mci/)
-	return ""
-}
-
-func getPlatformFromTarget(target string) string {
-	if targetIsLinux(target) {
-		return "linux"
-	}
-
-	if targetIsMacOS(target) {
-		return "macos"
-	}
-
-	if targetIsWindows(target) {
-		return "windows"
-	}
-	return ""
-}
-
-func getPartialFromFullURL(full string) string {
-	splited := strings.Split(full, "/")
-	return "/" + strings.Join(splited[len(splited)-2:], "/")
-}
-
-func getCloudArchFromServerArch(arch string) string {
-	if arch == "x86_64" {
-		return "amd64"
-	}
-
-	return arch
-}
-
-func shouldSkipDownload(download *ServerManifestDownload) bool {
-	return download.Edition == "source" || download.Arch == "arm64"
 }
